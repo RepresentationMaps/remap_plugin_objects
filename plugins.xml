@@ -1,0 +1,5 @@
+<library path="remap_plugin_objects">
+  <class name="PluginObjects" type="remap::plugins::PluginObjects" base_class_type="remap::plugins::PluginBase">
+    <description>A plugin for mapping detected objects into ReMap.</description>
+  </class>
+</library>

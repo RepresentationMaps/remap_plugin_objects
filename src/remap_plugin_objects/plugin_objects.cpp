@@ -89,11 +89,10 @@ void PluginObjects::depthSegmentationCallback(
     return;
   }
 
+  bool depth_in_meters = false;
+
   if (depth_image->encoding != "16UC1") {
-    RCLCPP_WARN(
-      node_ptr_->get_logger(),
-      "Image encoding not supported");
-    return;
+    depth_in_meters = true;
   }
 
   RCLCPP_INFO(node_ptr_->get_logger(), "Processing");
@@ -114,6 +113,9 @@ void PluginObjects::depthSegmentationCallback(
   int i;
   for (i = 0; i < static_cast<int>(segmentation_array->detections.detections.size()); i++) {
     const auto & detection = segmentation_array->detections.detections[i];
+    if (detection.results[0].hypothesis.class_id == "person") {
+      continue;
+    }
     const auto & mask = segmentation_array->masks[i];
     // We generate a Rect object equivalent to the bounding box of the segmentation mask
     auto roi_width = mask.width;
@@ -132,7 +134,7 @@ void PluginObjects::depthSegmentationCallback(
 
     cv::Mat cv_scaled_mask;
     eroded_mask.convertTo(cv_scaled_mask, CV_8U, 255);
-    auto cv_depth_image = cv_bridge::toCvCopy(depth_image, "16UC1")->image;
+    auto cv_depth_image = cv_bridge::toCvCopy(depth_image, depth_image->encoding)->image;
     auto depth_roi = cv_depth_image(mask_box);
     cv::Mat masked_depth;
     depth_roi.copyTo(masked_depth, cv_scaled_mask);
@@ -147,7 +149,7 @@ void PluginObjects::depthSegmentationCallback(
         // Skip invalid depth value
         if (depth_value == 0) {continue;}
 
-        float Z = depth_value * 0.001f;
+        float Z = (depth_in_meters) ? depth_value : (depth_value * 0.001f);
 
         // Compute 3D coordinates
         float X = (u + roi_x - cx_) * Z / fx_;
@@ -173,7 +175,6 @@ void PluginObjects::depthSegmentationCallback(
 
 void PluginObjects::run()
 {
-  auto start_time = std::chrono::high_resolution_clock::now();
   std::lock_guard<std::mutex> lock(objects_mutex_);
   if (new_objects_) {
     for (const auto & object : objects_points_) {
@@ -183,9 +184,6 @@ void PluginObjects::run()
       semantic_map_->insertSemanticPoints(new_object.second, new_object.first, *regions_register_);
     }
     updateEntities();
-    auto end_time = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed_seconds = end_time - start_time;
-    std::cout << "Elapsed time: " << elapsed_seconds.count() << " seconds" << std::endl;
     objects_points_ = new_objects_points_;
     new_objects_points_.clear();
     new_objects_ = false;

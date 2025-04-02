@@ -191,6 +191,58 @@ void PluginObjects::run()
   }
 }
 
+void PluginObjects::storeRegionsRelationships(std::map<int, std::map<int, std::string>> relationships_matrix)
+{
+  relationships_.clear();
+  for (const auto & relationship : relationships_matrix) {
+    RCLCPP_WARN_STREAM(node_ptr_->get_logger(), "Iterating over matrix");
+    auto subjects = regions_register_->findRegionsById(relationship.first);
+    for (const auto & subject : subjects) {
+      // We check whether the subject of the triple is a detected object
+      if (entities_.find(subject) != entities_.end()) {
+        RCLCPP_WARN_STREAM(node_ptr_->get_logger(), "Found object");
+        // The subject is actually an object detected by this plugin
+        // We now iterate over the "row" of the matrix
+        for (const auto & object : relationship.second) {
+          auto predicate = object.second;
+          // We extract all the entities belonging to the area
+          auto objects = regions_register_->findRegionsById(object.first);
+          for (const auto & obj : objects) {
+            if (obj == subject) {
+              continue;
+            }
+            if (predicate == "aboveTouching") {
+              RCLCPP_WARN_STREAM(node_ptr_->get_logger(), "Found aboveTouching --> transforming into isOn");
+              predicate = "isOn";
+            }
+            std::string fact = subject + " " + predicate + " " + obj;
+            // If the relationships wasn't already stored, we store it
+            if (std::find(relationships_.begin(), relationships_.end(), fact) == relationships_.end()) {
+              relationships_.push_back(subject + " " + predicate + " " + obj);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  for (const auto & relationship : relationships_) {
+    // We check: if the relationship wans't already there, then we push it to the kb
+    if (std::find(old_relationships_.begin(), old_relationships_.end(), relationship) == old_relationships_.end()) {
+      this->pushFact(relationship);
+    }
+  }
+
+  for (const auto & old_relationship : old_relationships_) {
+    // We check: if the relationship is no more there, then we remove it from the kb
+    if (std::find(relationships_.begin(), relationships_.end(), old_relationship) == relationships_.end()) {
+      this->removeFact(old_relationship);
+    }
+  }
+
+  old_relationships_ = relationships_;
+}
+
 void PluginObjects::updateEntities()
 {
   for (const auto & entity : entities_) {  // we only keep those entities that got detected now

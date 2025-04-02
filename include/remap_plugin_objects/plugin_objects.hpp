@@ -113,7 +113,9 @@ public:
   ~PluginObjects();
   void run() override;
   void initialize() override;
-  void storeRegionsRelationships(std::map<int, std::map<int, std::string>> relationships_matrix) override;
+  void storeRegionsRelationships(
+    std::map<int,
+    std::map<int, std::string>> relationships_matrix) override;
 };
 }  // namespace plugins
 }  // namespace remap

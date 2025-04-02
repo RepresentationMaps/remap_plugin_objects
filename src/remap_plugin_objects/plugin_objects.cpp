@@ -191,7 +191,9 @@ void PluginObjects::run()
   }
 }
 
-void PluginObjects::storeRegionsRelationships(std::map<int, std::map<int, std::string>> relationships_matrix)
+void PluginObjects::storeRegionsRelationships(
+  std::map<int, std::map<int,
+  std::string>> relationships_matrix)
 {
   relationships_.clear();
   for (const auto & relationship : relationships_matrix) {
@@ -212,12 +214,16 @@ void PluginObjects::storeRegionsRelationships(std::map<int, std::map<int, std::s
               continue;
             }
             if (predicate == "aboveTouching") {
-              RCLCPP_WARN_STREAM(node_ptr_->get_logger(), "Found aboveTouching --> transforming into isOn");
+              RCLCPP_WARN_STREAM(
+                node_ptr_->get_logger(), "Found aboveTouching --> transforming into isOn");
               predicate = "isOn";
             }
             std::string fact = subject + " " + predicate + " " + obj;
             // If the relationships wasn't already stored, we store it
-            if (std::find(relationships_.begin(), relationships_.end(), fact) == relationships_.end()) {
+            if (std::find(
+                relationships_.begin(), relationships_.end(),
+                fact) == relationships_.end())
+            {
               relationships_.push_back(subject + " " + predicate + " " + obj);
             }
           }
@@ -228,14 +234,20 @@ void PluginObjects::storeRegionsRelationships(std::map<int, std::map<int, std::s
 
   for (const auto & relationship : relationships_) {
     // We check: if the relationship wans't already there, then we push it to the kb
-    if (std::find(old_relationships_.begin(), old_relationships_.end(), relationship) == old_relationships_.end()) {
+    if (std::find(
+        old_relationships_.begin(), old_relationships_.end(),
+        relationship) == old_relationships_.end())
+    {
       this->pushFact(relationship);
     }
   }
 
   for (const auto & old_relationship : old_relationships_) {
     // We check: if the relationship is no more there, then we remove it from the kb
-    if (std::find(relationships_.begin(), relationships_.end(), old_relationship) == relationships_.end()) {
+    if (std::find(
+        relationships_.begin(), relationships_.end(),
+        old_relationship) == relationships_.end())
+    {
       this->removeFact(old_relationship);
     }
   }

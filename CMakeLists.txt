@@ -40,6 +40,7 @@ ament_target_dependencies(
   pcl_ros
   pluginlib
   rclcpp
+  remap_entity
   remap_map_handler
   remap_plugin_base
   remap_regions_register

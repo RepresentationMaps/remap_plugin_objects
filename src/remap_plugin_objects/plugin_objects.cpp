@@ -164,10 +164,36 @@ void PluginObjects::depthSegmentationCallback(
     transformPointCloud(points, rotated_points, transform_stamped);
 
     std::string object_id = detection.id;                          // we assume tracking is in place
+    // here we check if it's a new object or not
+    auto test_entities_it = test_entities_.find(object_id);
+    if (test_entities_it == test_entities_.end()) {
+      // This is the first time we see this object;
+      // we create a new entity
+      test_entities_[object_id] = remap::entity::Entity(
+        object_id, detection.results[0].hypothesis.class_id, node_ptr_->get_clock()->now().seconds());
+      test_entities_[object_id].updateRemove_f(
+        std::bind(
+          &remap::map_handler::SemanticMapHandler::removeRegion,
+          std::ref(*semantic_map_), std::placeholders::_1, std::ref(*regions_register_)));
+      test_entities_[object_id].update_f(
+        std::bind(
+          &remap::map_handler::SemanticMapHandler::insertSemanticPoints,
+          std::ref(*semantic_map_), rotated_points, std::placeholders::_1, std::ref(*regions_register_)));
+      this->pushFact(detection.id + " rdf:type " + detection.results[0].hypothesis.class_id);
+    } else {
+      // We update the time of the entity
+      test_entities_it->second.update_f(
+        std::bind(
+          &remap::map_handler::SemanticMapHandler::insertSemanticPoints,
+          std::ref(*semantic_map_), rotated_points, std::placeholders::_1, std::ref(*regions_register_)));
+      test_entities_it->second.updateTime(node_ptr_->get_clock()->now().seconds());
+    }
+    /*
     new_objects_points_[object_id] = rotated_points;
     if (static_cast<int>(detection.results.size()) > 0) {
       new_entities_[object_id] = detection.results[0].hypothesis.class_id;
     }
+    */
   }
   new_objects_ = true;
   RCLCPP_INFO(node_ptr_->get_logger(), "New objects collected");
@@ -176,6 +202,24 @@ void PluginObjects::depthSegmentationCallback(
 void PluginObjects::run()
 {
   std::lock_guard<std::mutex> lock(objects_mutex_);
+  std::vector<std::string> entities_to_remove;
+  for (auto & entity : test_entities_) {
+    entity.second.remove();
+    if (!entity.second.checkTime(node_ptr_->get_clock()->now().seconds())) {
+      std::cout<<"Non updated object, removing "<<entity.first<<std::endl;
+      // entities_to_remove.push_back(entity.first + "rdf:type " + entity.second.getEntityType());
+      entities_to_remove.push_back(entity.first);
+    } else {
+      entity.second.map();
+    }
+  }
+
+  for (const auto & entity : entities_to_remove) {
+    this->removeFact(entity + " rdf:type " + test_entities_[entity].getEntityType());
+    test_entities_.erase(entity);
+  }
+
+  /*
   if (new_objects_) {
     for (const auto & object : objects_points_) {
       semantic_map_->removeRegion(object.first, *regions_register_);
@@ -189,6 +233,7 @@ void PluginObjects::run()
     new_objects_ = false;
     RCLCPP_INFO(node_ptr_->get_logger(), "Points inserted");
   }
+  */
 }
 
 void PluginObjects::storeRegionsRelationships(

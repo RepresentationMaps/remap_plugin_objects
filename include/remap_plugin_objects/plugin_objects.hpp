@@ -38,6 +38,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 
+#include <remap_entity/entity.hpp>
 #include <remap_plugin_base/plugin_base.hpp>
 #include <remap_plugin_base/semantic_plugin.hpp>
 #include <remap_regions_register/regions_register.hpp>
@@ -82,6 +83,8 @@ private:
   std::map<std::string, std::string> new_entities_;
   std::vector<std::string> relationships_;
   std::vector<std::string> old_relationships_;
+
+  std::map<std::string, remap::entity::Entity> test_entities_;
 
   // tf2 objects
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;

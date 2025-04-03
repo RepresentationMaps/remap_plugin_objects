@@ -20,6 +20,7 @@
   <depend>pcl_ros</depend>
   <depend>pluginlib</depend>
   <depend>rclcpp</depend>
+  <depend>remap_entity</depend>
   <depend>remap_map_handler</depend>
   <depend>remap_plugin_base</depend>
   <depend>segmentation_msgs</depend>

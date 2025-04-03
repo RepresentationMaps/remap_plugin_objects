@@ -38,8 +38,6 @@ PluginObjects::~PluginObjects()
 
 void PluginObjects::initialize()
 {
-  new_objects_ = false;
-
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_ptr_->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
@@ -95,8 +93,6 @@ void PluginObjects::depthSegmentationCallback(
     depth_in_meters = true;
   }
 
-  RCLCPP_INFO(node_ptr_->get_logger(), "Processing");
-
   geometry_msgs::msg::TransformStamped transform_stamped;
   try {
     transform_stamped = tf_buffer_->lookupTransform(
@@ -110,6 +106,8 @@ void PluginObjects::depthSegmentationCallback(
   // here we lock the objects mutex; this way we ensure that
   // the grid processing can happen correctly
   std::lock_guard<std::mutex> lock(objects_mutex_);
+  std::vector<std::string> new_facts;
+  std::vector<std::string> old_facts;
   int i;
   for (i = 0; i < static_cast<int>(segmentation_array->detections.detections.size()); i++) {
     const auto & detection = segmentation_array->detections.detections[i];
@@ -170,7 +168,8 @@ void PluginObjects::depthSegmentationCallback(
       // This is the first time we see this object;
       // we create a new entity
       test_entities_[object_id] = remap::entity::Entity(
-        object_id, detection.results[0].hypothesis.class_id, node_ptr_->get_clock()->now().seconds());
+        object_id, detection.results[0].hypothesis.class_id,
+        node_ptr_->get_clock()->now().seconds());
       test_entities_[object_id].updateRemove_f(
         std::bind(
           &remap::map_handler::SemanticMapHandler::removeRegion,
@@ -178,25 +177,22 @@ void PluginObjects::depthSegmentationCallback(
       test_entities_[object_id].update_f(
         std::bind(
           &remap::map_handler::SemanticMapHandler::insertSemanticPoints,
-          std::ref(*semantic_map_), rotated_points, std::placeholders::_1, std::ref(*regions_register_)));
-      this->pushFact(detection.id + " rdf:type " + detection.results[0].hypothesis.class_id);
+          std::ref(*semantic_map_), rotated_points, std::placeholders::_1,
+          std::ref(*regions_register_)));
+      new_facts.push_back(detection.id + " rdf:type " + detection.results[0].hypothesis.class_id);
     } else {
       // We update the time of the entity
       test_entities_it->second.update_f(
         std::bind(
           &remap::map_handler::SemanticMapHandler::insertSemanticPoints,
-          std::ref(*semantic_map_), rotated_points, std::placeholders::_1, std::ref(*regions_register_)));
+          std::ref(*semantic_map_), rotated_points, std::placeholders::_1,
+          std::ref(*regions_register_)));
       test_entities_it->second.updateTime(node_ptr_->get_clock()->now().seconds());
     }
-    /*
-    new_objects_points_[object_id] = rotated_points;
-    if (static_cast<int>(detection.results.size()) > 0) {
-      new_entities_[object_id] = detection.results[0].hypothesis.class_id;
-    }
-    */
   }
-  new_objects_ = true;
-  RCLCPP_INFO(node_ptr_->get_logger(), "New objects collected");
+  if (new_facts.size() > 0) {
+    this->revisePushFacts(new_facts);
+  }
 }
 
 void PluginObjects::run()
@@ -206,7 +202,6 @@ void PluginObjects::run()
   for (auto & entity : test_entities_) {
     entity.second.remove();
     if (!entity.second.checkTime(node_ptr_->get_clock()->now().seconds())) {
-      std::cout<<"Non updated object, removing "<<entity.first<<std::endl;
       // entities_to_remove.push_back(entity.first + "rdf:type " + entity.second.getEntityType());
       entities_to_remove.push_back(entity.first);
     } else {
@@ -214,67 +209,57 @@ void PluginObjects::run()
     }
   }
 
+  std::vector<std::string> old_facts;
   for (const auto & entity : entities_to_remove) {
-    this->removeFact(entity + " rdf:type " + test_entities_[entity].getEntityType());
+    old_facts.push_back(entity + " rdf:type " + test_entities_[entity].getEntityType());
     test_entities_.erase(entity);
   }
 
-  /*
-  if (new_objects_) {
-    for (const auto & object : objects_points_) {
-      semantic_map_->removeRegion(object.first, *regions_register_);
-    }
-    for (const auto & new_object : new_objects_points_) {
-      semantic_map_->insertSemanticPoints(new_object.second, new_object.first, *regions_register_);
-    }
-    updateEntities();
-    objects_points_ = new_objects_points_;
-    new_objects_points_.clear();
-    new_objects_ = false;
-    RCLCPP_INFO(node_ptr_->get_logger(), "Points inserted");
+  if (old_facts.size() > 0) {
+    this->reviseRemoveFacts(old_facts);
   }
-  */
 }
 
-void PluginObjects::storeRegionsRelationships(
-  std::map<int, std::map<int,
+void PluginObjects::storeEntitiesRelationships(
+  std::map<std::string, std::map<std::string,
   std::string>> relationships_matrix)
 {
   relationships_.clear();
   for (const auto & relationship : relationships_matrix) {
-    RCLCPP_WARN_STREAM(node_ptr_->get_logger(), "Iterating over matrix");
-    auto subjects = regions_register_->findRegionsById(relationship.first);
-    for (const auto & subject : subjects) {
-      // We check whether the subject of the triple is a detected object
-      if (entities_.find(subject) != entities_.end()) {
-        RCLCPP_WARN_STREAM(node_ptr_->get_logger(), "Found object");
-        // The subject is actually an object detected by this plugin
-        // We now iterate over the "row" of the matrix
-        for (const auto & object : relationship.second) {
-          auto predicate = object.second;
-          // We extract all the entities belonging to the area
-          auto objects = regions_register_->findRegionsById(object.first);
-          for (const auto & obj : objects) {
-            if (obj == subject) {
-              continue;
-            }
-            if (predicate == "aboveTouching") {
-              RCLCPP_WARN_STREAM(
-                node_ptr_->get_logger(), "Found aboveTouching --> transforming into isOn");
-              predicate = "isOn";
-            }
-            std::string fact = subject + " " + predicate + " " + obj;
-            // If the relationships wasn't already stored, we store it
-            if (std::find(
-                relationships_.begin(), relationships_.end(),
-                fact) == relationships_.end())
-            {
-              relationships_.push_back(subject + " " + predicate + " " + obj);
-            }
+    auto subject = relationship.first;
+    if (test_entities_.find(subject) != test_entities_.end()) {
+      std::string object;
+      for (const auto & matrix_elem : relationship.second) {
+        object = matrix_elem.first;
+        // We check whether the subject of the triple is a detected object
+        if (test_entities_.find(object) != test_entities_.end()) {
+          // The subject is actually an object detected by this plugin
+          // We now iterate over the "row" of the matrix
+          auto predicate = matrix_elem.second;
+          if (predicate == "aboveTouching") {
+            predicate = "isOn";
+          } else {
+            continue;
+          }
+          std::string fact = subject + " " + predicate + " " + object;
+          // If the relationships wasn't already stored, we store it
+          if (std::find(
+              relationships_.begin(), relationships_.end(),
+              fact) == relationships_.end())
+          {
+            relationships_.push_back(fact);
           }
         }
       }
     }
+  }
+
+  for (const auto & relationship : relationships_) {
+    std::cout << "Relationship: " << relationship << std::endl;
+  }
+
+  for (const auto & old_relationship : old_relationships_) {
+    std::cout << "Old Relationship: " << old_relationship << std::endl;
   }
 
   for (const auto & relationship : relationships_) {
@@ -284,6 +269,7 @@ void PluginObjects::storeRegionsRelationships(
         relationship) == old_relationships_.end())
     {
       this->pushFact(relationship);
+      std::cout << "Pushed relationship: " << relationship << std::endl;
     }
   }
 
@@ -298,26 +284,6 @@ void PluginObjects::storeRegionsRelationships(
   }
 
   old_relationships_ = relationships_;
-}
-
-void PluginObjects::updateEntities()
-{
-  for (const auto & entity : entities_) {  // we only keep those entities that got detected now
-    if (new_entities_.find(entity.first) == new_entities_.end()) {
-      // We found that this entity did not get re-detected;
-      // We remove it from the map and the knowledge base.
-      this->removeFact(entity.first + " rdf:type " + entity.second);
-    }
-  }
-  for (const auto & new_entity : new_entities_) {
-    if (entities_.find(new_entity.first) == entities_.end()) {
-      // This is the first time we see this entity;
-      // we update the knowledge base accordingly.
-      this->pushFact(new_entity.first + " rdf:type " + new_entity.second);
-    }
-  }
-  entities_ = new_entities_;
-  new_entities_.clear();
 }
 
 void PluginObjects::transformPointCloud(

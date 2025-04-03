@@ -106,8 +106,6 @@ private:
   void cameraInfoCallback(
     const sensor_msgs::msg::CameraInfo::SharedPtr camera_info);
 
-  void updateEntities();
-
 public:
   PluginObjects();
   PluginObjects(
@@ -116,9 +114,9 @@ public:
   ~PluginObjects();
   void run() override;
   void initialize() override;
-  void storeRegionsRelationships(
-    std::map<int,
-    std::map<int, std::string>> relationships_matrix) override;
+  void storeEntitiesRelationships(
+    std::map<std::string,
+    std::map<std::string, std::string>> relationships_matrix) override;
 };
 }  // namespace plugins
 }  // namespace remap

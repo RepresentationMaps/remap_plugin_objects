@@ -19,7 +19,8 @@ ament_auto_find_build_dependencies()
 
 # Targets
 add_library(remap_plugin_objects SHARED
-src/remap_plugin_objects/plugin_objects.cpp)
+src/remap_plugin_objects/plugin_objects.cpp
+src/remap_entity/entity.cpp)
 
 target_link_libraries(${PROJECT_NAME}
   ${PCL_LIBRARIES}
@@ -40,7 +41,6 @@ ament_target_dependencies(
   pcl_ros
   pluginlib
   rclcpp
-  remap_entity
   remap_map_handler
   remap_plugin_base
   remap_regions_register

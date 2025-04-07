@@ -79,12 +79,10 @@ private:
   std::map<std::string, std::vector<pcl::PointXYZ>> new_objects_points_;
   bool new_objects_;
   std::mutex objects_mutex_;
-  std::map<std::string, std::string> entities_;  // <object_id, object_label>
-  std::map<std::string, std::string> new_entities_;
   std::vector<std::string> relationships_;
   std::vector<std::string> old_relationships_;
 
-  std::map<std::string, remap::entity::Entity> test_entities_;
+  std::map<std::string, remap::entity::Entity> entities_objects_;
 
   // tf2 objects
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;

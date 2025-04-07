@@ -163,18 +163,18 @@ void PluginObjects::depthSegmentationCallback(
 
     std::string object_id = detection.id;                          // we assume tracking is in place
     // here we check if it's a new object or not
-    auto test_entities_it = test_entities_.find(object_id);
-    if (test_entities_it == test_entities_.end()) {
+    auto entities_objects_it = entities_objects_.find(object_id);
+    if (entities_objects_it == entities_objects_.end()) {
       // This is the first time we see this object;
       // we create a new entity
-      test_entities_[object_id] = remap::entity::Entity(
+      entities_objects_[object_id] = remap::entity::Entity(
         object_id, detection.results[0].hypothesis.class_id,
         node_ptr_->get_clock()->now().seconds());
-      test_entities_[object_id].updateRemove_f(
+      entities_objects_[object_id].updateRemove_f(
         std::bind(
           &remap::map_handler::SemanticMapHandler::removeRegion,
           std::ref(*semantic_map_), std::placeholders::_1, std::ref(*regions_register_)));
-      test_entities_[object_id].update_f(
+      entities_objects_[object_id].update_f(
         std::bind(
           &remap::map_handler::SemanticMapHandler::insertSemanticPoints,
           std::ref(*semantic_map_), rotated_points, std::placeholders::_1,
@@ -182,12 +182,12 @@ void PluginObjects::depthSegmentationCallback(
       new_facts.push_back(detection.id + " rdf:type " + detection.results[0].hypothesis.class_id);
     } else {
       // We update the time of the entity
-      test_entities_it->second.update_f(
+      entities_objects_it->second.update_f(
         std::bind(
           &remap::map_handler::SemanticMapHandler::insertSemanticPoints,
           std::ref(*semantic_map_), rotated_points, std::placeholders::_1,
           std::ref(*regions_register_)));
-      test_entities_it->second.updateTime(node_ptr_->get_clock()->now().seconds());
+      entities_objects_it->second.updateTime(node_ptr_->get_clock()->now().seconds());
     }
   }
   if (new_facts.size() > 0) {
@@ -199,7 +199,7 @@ void PluginObjects::run()
 {
   std::lock_guard<std::mutex> lock(objects_mutex_);
   std::vector<std::string> entities_to_remove;
-  for (auto & entity : test_entities_) {
+  for (auto & entity : entities_objects_) {
     entity.second.remove();
     if (!entity.second.checkTime(node_ptr_->get_clock()->now().seconds())) {
       // entities_to_remove.push_back(entity.first + "rdf:type " + entity.second.getEntityType());
@@ -211,8 +211,8 @@ void PluginObjects::run()
 
   std::vector<std::string> old_facts;
   for (const auto & entity : entities_to_remove) {
-    old_facts.push_back(entity + " rdf:type " + test_entities_[entity].getEntityType());
-    test_entities_.erase(entity);
+    old_facts.push_back(entity + " rdf:type " + entities_objects_[entity].getEntityType());
+    entities_objects_.erase(entity);
   }
 
   if (old_facts.size() > 0) {
@@ -227,12 +227,12 @@ void PluginObjects::storeEntitiesRelationships(
   relationships_.clear();
   for (const auto & relationship : relationships_matrix) {
     auto subject = relationship.first;
-    if (test_entities_.find(subject) != test_entities_.end()) {
+    if (entities_objects_.find(subject) != entities_objects_.end()) {
       std::string object;
       for (const auto & matrix_elem : relationship.second) {
         object = matrix_elem.first;
         // We check whether the subject of the triple is a detected object
-        if (test_entities_.find(object) != test_entities_.end()) {
+        if (entities_objects_.find(object) != entities_objects_.end()) {
           // The subject is actually an object detected by this plugin
           // We now iterate over the "row" of the matrix
           auto predicate = matrix_elem.second;
@@ -255,21 +255,12 @@ void PluginObjects::storeEntitiesRelationships(
   }
 
   for (const auto & relationship : relationships_) {
-    std::cout << "Relationship: " << relationship << std::endl;
-  }
-
-  for (const auto & old_relationship : old_relationships_) {
-    std::cout << "Old Relationship: " << old_relationship << std::endl;
-  }
-
-  for (const auto & relationship : relationships_) {
     // We check: if the relationship wans't already there, then we push it to the kb
     if (std::find(
         old_relationships_.begin(), old_relationships_.end(),
         relationship) == old_relationships_.end())
     {
       this->pushFact(relationship);
-      std::cout << "Pushed relationship: " << relationship << std::endl;
     }
   }
 

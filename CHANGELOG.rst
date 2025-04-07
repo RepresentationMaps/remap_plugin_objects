@@ -2,8 +2,8 @@
 Changelog for package remap_plugin_objects
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.0 (2025-04-07)
+------------------
 * moved remap_entity to this package
 * general clean up (including pleasing almighty linters)
 * wip

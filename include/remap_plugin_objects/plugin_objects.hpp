@@ -61,6 +61,9 @@ namespace plugins
 class PluginObjects : public SemanticPlugin
 {
 private:
+  void filterPointCloud(
+    const std::vector<pcl::PointXYZ> & input_points,
+    std::vector<pcl::PointXYZ> & output_points);
   void transformPointCloud(
     const std::vector<pcl::PointXYZ> & input_points,
     std::vector<pcl::PointXYZ> & output_points,

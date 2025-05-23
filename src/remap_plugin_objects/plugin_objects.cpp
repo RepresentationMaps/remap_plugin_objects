@@ -14,6 +14,8 @@
 
 #include <cmath>
 
+#include <pcl/filters/statistical_outlier_removal.h>
+
 #include "remap_plugin_objects/plugin_objects.hpp"
 
 namespace remap
@@ -132,12 +134,14 @@ void PluginObjects::depthSegmentationCallback(
 
     cv::Mat cv_scaled_mask;
     eroded_mask.convertTo(cv_scaled_mask, CV_8U, 255);
+    cv_mask.convertTo(cv_scaled_mask, CV_8U, 255);
     auto cv_depth_image = cv_bridge::toCvCopy(depth_image, depth_image->encoding)->image;
     auto depth_roi = cv_depth_image(mask_box);
     cv::Mat masked_depth;
     depth_roi.copyTo(masked_depth, cv_scaled_mask);
 
     std::vector<pcl::PointXYZ> points;
+    std::vector<pcl::PointXYZ> filtered_points;
     std::vector<pcl::PointXYZ> rotated_points;
 
     for (int v = 0; v < masked_depth.rows; ++v) {
@@ -159,7 +163,8 @@ void PluginObjects::depthSegmentationCallback(
       }
     }
 
-    transformPointCloud(points, rotated_points, transform_stamped);
+    filterPointCloud(points, filtered_points);
+    transformPointCloud(filtered_points, rotated_points, transform_stamped);
 
     std::string object_id = detection.id;                          // we assume tracking is in place
     // here we check if it's a new object or not
@@ -275,6 +280,26 @@ void PluginObjects::storeEntitiesRelationships(
   }
 
   old_relationships_ = relationships_;
+}
+
+void PluginObjects::filterPointCloud(
+  const std::vector<pcl::PointXYZ> & input_points,
+  std::vector<pcl::PointXYZ> & output_points)
+{
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+
+  std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ>> aligned_points(input_points.begin(), input_points.end());
+
+  cloud->points = aligned_points;
+
+  pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+  sor.setInputCloud(cloud);
+  sor.setMeanK(50);
+  sor.setStddevMulThresh(1.0);
+  sor.filter(*cloud_filtered);
+
+  output_points = std::vector<pcl::PointXYZ>(cloud_filtered->points.begin(), cloud_filtered->points.end());
 }
 
 void PluginObjects::transformPointCloud(

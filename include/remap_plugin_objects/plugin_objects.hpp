@@ -64,6 +64,9 @@ private:
   void filterPointCloud(
     const std::vector<pcl::PointXYZ> & input_points,
     std::vector<pcl::PointXYZ> & output_points);
+  float computeCentroidDistance(
+    const std::vector<pcl::PointXYZ>& points,
+    const std::string & object_id);
   void transformPointCloud(
     const std::vector<pcl::PointXYZ> & input_points,
     std::vector<pcl::PointXYZ> & output_points,
@@ -80,6 +83,9 @@ private:
   // Object storing depth masks for the objects
   std::map<std::string, std::vector<pcl::PointXYZ>> objects_points_;
   std::map<std::string, std::vector<pcl::PointXYZ>> new_objects_points_;
+
+  float distance_threshold_;
+
   bool new_objects_;
   std::mutex objects_mutex_;
   std::vector<std::string> relationships_;

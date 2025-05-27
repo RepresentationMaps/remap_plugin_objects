@@ -43,6 +43,13 @@ void PluginObjects::initialize()
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_ptr_->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
+  auto descriptor = rcl_interfaces::msg::ParameterDescriptor{};
+
+  descriptor.description = "Distance threshold";
+  node_ptr_->declare_parameter("plugin/objects/distance_threshold", 3.0, descriptor);
+
+  distance_threshold_ = node_ptr_->get_parameter("plugin/objects/distance_threshold").as_double();
+
   camera_info_sub_ = node_ptr_->create_subscription<sensor_msgs::msg::CameraInfo>(
     "/depth_registered/camera_info",
     rclcpp::SensorDataQoS(),
@@ -134,7 +141,7 @@ void PluginObjects::depthSegmentationCallback(
 
     cv::Mat cv_scaled_mask;
     eroded_mask.convertTo(cv_scaled_mask, CV_8U, 255);
-    cv_mask.convertTo(cv_scaled_mask, CV_8U, 255);
+    // cv_mask.convertTo(cv_scaled_mask, CV_8U, 255);
     auto cv_depth_image = cv_bridge::toCvCopy(depth_image, depth_image->encoding)->image;
     auto depth_roi = cv_depth_image(mask_box);
     cv::Mat masked_depth;
@@ -164,6 +171,18 @@ void PluginObjects::depthSegmentationCallback(
     }
 
     filterPointCloud(points, filtered_points);
+    const auto centroid_distance = computeCentroidDistance(filtered_points, detection.id);
+    if (centroid_distance > distance_threshold_) {
+      RCLCPP_WARN(
+        node_ptr_->get_logger(),
+        "Object %s centroid distance is too far: %f", detection.id.c_str(), centroid_distance);
+      continue;
+    } else {
+      RCLCPP_INFO(
+        node_ptr_->get_logger(),
+        "Object %s centroid distance is: %f", detection.id.c_str(), centroid_distance);
+    }
+
     transformPointCloud(filtered_points, rotated_points, transform_stamped);
 
     std::string object_id = detection.id;                          // we assume tracking is in place
@@ -300,6 +319,33 @@ void PluginObjects::filterPointCloud(
   sor.filter(*cloud_filtered);
 
   output_points = std::vector<pcl::PointXYZ>(cloud_filtered->points.begin(), cloud_filtered->points.end());
+}
+
+float PluginObjects::computeCentroidDistance(
+  const std::vector<pcl::PointXYZ>& points,
+  const std::string & object_id) {
+  if (points.empty()) {
+    if (object_id.size() > 0) {
+      RCLCPP_WARN(
+        node_ptr_->get_logger(),
+        "No points found for object %s. Returning default point.", object_id.c_str());
+    }
+    return distance_threshold_ + 0.5f;
+  }
+
+  float sum_x = 0.0f, sum_y = 0.0f, sum_z = 0.0f;
+
+  for (const auto& point : points) {
+      sum_x += point.x;
+      sum_y += point.y;
+      sum_z += point.z;
+  }
+
+  float n = static_cast<float>(points.size());
+  pcl::PointXYZ centroid(sum_x / n, sum_y / n, sum_z / n);
+  return std::sqrt(centroid.x * centroid.x +
+                   centroid.y * centroid.y +
+                   centroid.z * centroid.z);
 }
 
 void PluginObjects::transformPointCloud(

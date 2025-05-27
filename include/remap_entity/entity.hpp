@@ -19,6 +19,8 @@
 #include <string>
 #include <vector>
 
+#include <openvdb/openvdb.h>
+
 namespace remap
 {
 namespace entity
@@ -33,6 +35,12 @@ protected:
   double last_updated_;
 
   std::vector<std::string> facts_;
+
+  // Let's start from something simple
+  // We check whether the two objects:
+  // - have the same type
+  // - have some threshold intersection
+  openvdb::CoordBBox object_bbox_;
 
 public:
   Entity()
@@ -74,6 +82,35 @@ public:
   std::vector<std::string> getFacts() const
   {
     return facts_;
+  }
+
+  void storeBBox(
+    const openvdb::CoordBBox & bbox)
+  {
+    object_bbox_ = bbox;
+  }
+
+  void mergeBBox(
+    const openvdb::CoordBBox & bbox)
+  {
+    if (!object_bbox_.empty() && !bbox.empty()) {
+      object_bbox_.expand(bbox);
+    } else if (!bbox.empty()) {
+      object_bbox_ = bbox;
+    }
+  }
+
+  float computeIoU(
+    const openvdb::CoordBBox & bbox) const
+  {
+    if (!object_bbox_.empty() && !bbox.empty()) {
+      auto intersection = object_bbox_;
+      intersection.intersect(bbox);
+      float intersection_volume = intersection.volume();
+      float union_volume = object_bbox_.volume() + bbox.volume() - intersection_volume;
+      return (union_volume > 0.0f) ? (intersection_volume / union_volume) : 0.0f;
+    }
+    return 0.0f;
   }
 };
 }  // namespace entity

@@ -50,6 +50,8 @@ void PluginObjects::initialize()
 
   distance_threshold_ = node_ptr_->get_parameter("plugin/objects/distance_threshold").as_double();
 
+  grid_transform_ = semantic_map_->getGridPtr()->transformPtr();
+
   camera_info_sub_ = node_ptr_->create_subscription<sensor_msgs::msg::CameraInfo>(
     "/depth_registered/camera_info",
     rclcpp::SensorDataQoS(),
@@ -85,6 +87,30 @@ void PluginObjects::cameraInfoCallback(
   } else {
     camera_info_sub_.reset();
   }
+}
+
+openvdb::CoordBBox PluginObjects::computeCoordBBox(const std::vector<pcl::PointXYZ>& points) const
+{
+  if (points.empty()) {
+    return openvdb::CoordBBox();
+  }
+
+  openvdb::Coord minCoord = openvdb::Coord::max();
+  openvdb::Coord maxCoord = openvdb::Coord::min();
+
+  for (const auto& pt : points) {
+    auto index_point = grid_transform_->worldToIndex(
+      openvdb::Vec3d(pt.x, pt.y, pt.z));
+    openvdb::Coord coord = openvdb::Coord(
+      static_cast<int>(index_point[0]),
+      static_cast<int>(index_point[1]),
+      static_cast<int>(index_point[2]));
+
+    minCoord.minComponent(coord);
+    maxCoord.maxComponent(coord);
+  }
+
+  return openvdb::CoordBBox(minCoord, maxCoord);
 }
 
 void PluginObjects::depthSegmentationCallback(
@@ -171,6 +197,7 @@ void PluginObjects::depthSegmentationCallback(
     }
 
     filterPointCloud(points, filtered_points);
+
     const auto centroid_distance = computeCentroidDistance(filtered_points, detection.id);
     if (centroid_distance > distance_threshold_) {
       RCLCPP_WARN(
@@ -191,9 +218,70 @@ void PluginObjects::depthSegmentationCallback(
     if (entities_objects_it == entities_objects_.end()) {
       // This is the first time we see this object;
       // we create a new entity
+
+      // Here we should:
+      // - extract crucial features about the object
+      //    - bounding box
+      //    - type
+      // - check if another object with same type and similar bounding box
+      //   is there:
+      //    - compute new object bounding box
+      //    - compute IoU between the two objects
+      //    - if it's over some threshold, then it's the same object.
+      //    - if not, then we create a new entity
+      // - if this is not a new object, we might think
+      //   about updating the volume (future plan)
+
+      // Since we know there's not another object with the same ID
+      // we proceed checking if there's a similar object
+      auto bbox = computeCoordBBox(rotated_points);
+      entity::Entity new_detection = entity::Entity(
+        object_id,
+        detection.results[0].hypothesis.class_id,
+        node_ptr_->get_clock()->now().seconds());
+
+      bool new_object = false;
+
+      for (auto & stored_entity : entities_objects_) {
+        // we check if the two objects have the same type
+        // and a certain IoU
+        if (stored_entity.second.getEntityType() ==
+            detection.results[0].hypothesis.class_id)
+        {
+          if (stored_entity.second.computeIoU(bbox) < 0.2) {
+            // Then this is a new object
+            // We store the object among the stored entities
+            // entities_objects_[object_id] = new_detection;
+            new_object = true;
+          } else {
+            RCLCPP_WARN(
+              node_ptr_->get_logger(),
+              "Object %s overlapping, skipping insertion", object_id.c_str());
+          }
+        }
+      }
+
+      if (entities_objects_.size() == 0) {
+        new_object = true;
+      }
+
+      if (!new_object) {
+        RCLCPP_WARN(
+          node_ptr_->get_logger(),
+          "Object %s already exists in the map, skipping insertion", object_id.c_str());
+        return;
+      } else {
+        RCLCPP_WARN(
+          node_ptr_->get_logger(),
+          "New object %s detected, inserting into the map", object_id.c_str());
+      }
+
+      entities_objects_[object_id] = new_detection;
+      /*
       entities_objects_[object_id] = remap::entity::Entity(
         object_id, detection.results[0].hypothesis.class_id,
         node_ptr_->get_clock()->now().seconds());
+      */
       entities_objects_[object_id].updateRemove_f(
         std::bind(
           &remap::map_handler::SemanticMapHandler::removeRegion,
@@ -224,10 +312,18 @@ void PluginObjects::run()
   std::lock_guard<std::mutex> lock(objects_mutex_);
   std::vector<std::string> entities_to_remove;
   for (auto & entity : entities_objects_) {
+    // TEST: TO_DO: avoid removing all the times. Switching to persistence,
+    // we should avoid removing all the times.
     entity.second.remove();
     if (!entity.second.checkTime(node_ptr_->get_clock()->now().seconds())) {
       // entities_to_remove.push_back(entity.first + "rdf:type " + entity.second.getEntityType());
-      entities_to_remove.push_back(entity.first);
+
+      // TEST: disabled as we're now testing persistence
+
+      // entities_to_remove.push_back(entity.first);
+
+      // TEST: avoid changing code structure
+      entity.second.map();
     } else {
       entity.second.map();
     }

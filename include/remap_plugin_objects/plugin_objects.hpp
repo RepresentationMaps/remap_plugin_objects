@@ -51,6 +51,8 @@
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
+#include <openvdb/math/Transform.h>
+
 typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image,
     segmentation_msgs::msg::SegmentationArray> SyncPolicy;
 
@@ -72,6 +74,8 @@ private:
     std::vector<pcl::PointXYZ> & output_points,
     const geometry_msgs::msg::TransformStamped & transform_stamped);
 
+  openvdb::CoordBBox computeCoordBBox(const std::vector<pcl::PointXYZ>& points) const;
+
   std::vector<std::string> regions_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
 
@@ -92,6 +96,8 @@ private:
   std::vector<std::string> old_relationships_;
 
   std::map<std::string, remap::entity::Entity> entities_objects_;
+
+  openvdb::math::Transform::ConstPtr grid_transform_;
 
   // tf2 objects
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;

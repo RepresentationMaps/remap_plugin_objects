@@ -112,6 +112,18 @@ public:
     }
     return 0.0f;
   }
+
+  float computIntersectionRatio(
+    const openvdb::CoordBBox & bbox) const
+  {
+    if (!object_bbox_.empty() && !bbox.empty()) {
+      auto intersection = object_bbox_;
+      intersection.intersect(bbox);
+      float intersection_volume = intersection.volume();
+      return (intersection_volume > 0.0f) ? (intersection_volume / bbox.volume()) : 0.0f;
+    }
+    return 0.0f;
+  }
 };
 }  // namespace entity
 }  // namespace remap

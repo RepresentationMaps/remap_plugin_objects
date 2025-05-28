@@ -240,7 +240,7 @@ void PluginObjects::depthSegmentationCallback(
         detection.results[0].hypothesis.class_id,
         node_ptr_->get_clock()->now().seconds());
 
-      bool new_object = false;
+      bool new_object = true;
 
       for (auto & stored_entity : entities_objects_) {
         // we check if the two objects have the same type
@@ -248,28 +248,30 @@ void PluginObjects::depthSegmentationCallback(
         if (stored_entity.second.getEntityType() ==
             detection.results[0].hypothesis.class_id)
         {
-          if (stored_entity.second.computeIoU(bbox) < 0.2) {
+          // if (stored_entity.second.computeIoU(bbox) > 0.2) {
+          if (stored_entity.second.computIntersectionRatio(bbox) > 0.2) {
             // Then this is a new object
             // We store the object among the stored entities
             // entities_objects_[object_id] = new_detection;
-            new_object = true;
-          } else {
             RCLCPP_WARN(
               node_ptr_->get_logger(),
               "Object %s overlapping, skipping insertion", object_id.c_str());
+            new_object = false;
+            break;
           }
         }
       }
 
+      /*
       if (entities_objects_.size() == 0) {
         new_object = true;
-      }
+      }*/
 
       if (!new_object) {
         RCLCPP_WARN(
           node_ptr_->get_logger(),
           "Object %s already exists in the map, skipping insertion", object_id.c_str());
-        return;
+        continue;
       } else {
         RCLCPP_WARN(
           node_ptr_->get_logger(),

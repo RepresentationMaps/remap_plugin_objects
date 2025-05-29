@@ -332,7 +332,7 @@ void PluginObjects::storeEntitiesRelationships(
           // We now iterate over the "row" of the matrix
           auto predicate = matrix_elem.second;
           if (predicate == "aboveTouching") {
-            predicate = "isOn";
+            predicate = "oro:isOn";
           } else {
             continue;
           }

@@ -274,7 +274,25 @@ void PluginObjects::depthSegmentationCallback(
           &remap::map_handler::SemanticMapHandler::insertSemanticPoints,
           std::ref(*semantic_map_), rotated_points, std::placeholders::_1,
           std::ref(*regions_register_)));
-      new_facts.push_back(detection.id + " rdf:type " + detection.results[0].hypothesis.class_id);
+      std::string ontology_class;
+      if (ontology_class_map_.size() > 0) {
+        if (ontology_class_map_.find(detection.results[0].hypothesis.class_id) != ontology_class_map_.end()) {
+          ontology_class = ontology_class_map_[detection.results[0].hypothesis.class_id];
+        }
+      }
+      if (ontology_class.empty()) {
+        ontology_class = detection.results[0].hypothesis.class_id;
+      }
+      new_facts.push_back(detection.results[0].hypothesis.class_id + " rdf:type " + ontology_class);
+
+      // isIn computation. Demo only. Needs refinement.
+      std::vector<std::string> rooms = {"kitchen", "living_room", "corridor"};
+      auto presence_entities = regions_register_->getCoexistentEntities(object_id);
+      for (const auto & room : rooms) {
+        if (presence_entities.find(room) != presence_entities.end()) {
+          new_facts.push_back(detection.results[0].hypothesis.class_id + " oro:isIn " + room);
+        }
+      }
     } else {
       // We update the time of the entity
       entities_objects_it->second.update_f(
@@ -311,7 +329,7 @@ void PluginObjects::run()
   }
 
   if (old_facts.size() > 0) {
-    this->reviseRemoveFacts(old_facts);
+    //this->reviseRemoveFacts(old_facts);   // removed for demo purposes
   }
 }
 

@@ -13,6 +13,15 @@
 // limitations under the License.
 
 #include <cmath>
+#include <filesystem>
+
+#include <ament_index_cpp/get_package_share_directory.hpp>
+#include <ament_index_cpp/get_resources.hpp>
+#include <ament_index_cpp/get_resource.hpp>
+#include <ament_index_cpp/has_resource.hpp>
+
+#include <yaml-cpp/yaml.h>
+#include <yaml-cpp/exceptions.h>
 
 #include <pcl/filters/statistical_outlier_removal.h>
 
@@ -49,6 +58,68 @@ void PluginObjects::initialize()
   node_ptr_->declare_parameter("plugin/objects/distance_threshold", 3.0, descriptor);
 
   distance_threshold_ = node_ptr_->get_parameter("plugin/objects/distance_threshold").as_double();
+
+  // Checking if a detection class/ontology class mapping exists
+  // We read the name of the mapping as a parameter (/plugin/objects/ontology_class_map)
+  // and, if this exists as a resourse of type remap.ontology, we read the file
+
+  descriptor.description = "Detection class/ontology class map file";
+  node_ptr_->declare_parameter("plugin/objects/ontology_class_map", "coco_oro_mapping", descriptor);
+
+  auto class_map_name = node_ptr_->get_parameter("plugin/objects/ontology_class_map").as_string();
+  class_map_name += ".yaml";
+
+  std::string resource_type = "remap.ontologies";
+  auto class_map_path_fs = std::filesystem::path();
+
+  std::map<std::string, std::string> resources = ament_index_cpp::get_resources(resource_type);
+  if (resources.size() > 0) {
+    for (const auto & resource : ament_index_cpp::get_resources(resource_type)) {
+      std::string resource_name = resource.first;
+      std::string resource_path = resource.second;
+      std::string resource_content;
+      ament_index_cpp::get_resource(resource_type, resource_name, resource_content);
+      std::istringstream resource_content_stream(resource_content);
+      std::string map_relative_path;
+      char path_delimiter = ';';
+      while (std::getline(resource_content_stream, map_relative_path, path_delimiter)) {
+        if (map_relative_path.find(class_map_name) != std::string::npos) {
+          class_map_path_fs = std::filesystem::path(resource_path) / std::string("share") /
+            resource_name / map_relative_path;
+        }
+      }
+      if (!class_map_path_fs.empty()) {
+        RCLCPP_INFO(node_ptr_->get_logger(), "Found class map: %s", class_map_path_fs.string().c_str());
+        break;
+      }
+    }
+
+    if (class_map_path_fs.empty()) {
+      RCLCPP_ERROR(
+        node_ptr_->get_logger(), "Class map %s not found in the resource index.",
+        class_map_name.c_str());
+    } else {
+      YAML::Node config = YAML::LoadFile(class_map_path_fs.string());
+
+      for (const auto & node : config) {
+        std::string od_class = node.first.as<std::string>();
+        if (node.second["ontology_class"]) {
+          std::string ontology_class = node.second["ontology_class"].as<std::string>();
+          ontology_class_map_[od_class] = ontology_class;
+          RCLCPP_INFO(
+            node_ptr_->get_logger(), "Mapping detection class '%s' to ontology class '%s'",
+            od_class.c_str(), ontology_class.c_str());
+        } else {
+          RCLCPP_WARN(
+            node_ptr_->get_logger(),
+            "No ontology class mapping found for detection class '%s'",
+            od_class.c_str());
+        }
+      }
+    }
+  } else {
+    RCLCPP_ERROR(node_ptr_->get_logger(), "No resources of type  %s found.", resource_type.c_str());
+  }
 
   camera_info_sub_ = node_ptr_->create_subscription<sensor_msgs::msg::CameraInfo>(
     "/depth_registered/camera_info",

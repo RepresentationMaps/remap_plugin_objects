@@ -88,6 +88,7 @@ private:
 
   bool new_objects_;
   std::mutex objects_mutex_;
+  std::map<std::string, std::string> ontology_class_map_;
   std::vector<std::string> relationships_;
   std::vector<std::string> old_relationships_;
 

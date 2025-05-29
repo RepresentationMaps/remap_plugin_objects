@@ -12,6 +12,7 @@
 
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
   
+  <depend>ament_index_cpp</depend>
   <depend>cv_bridge</depend>
   <depend>geometry_msgs</depend>
   <depend>libopencv-dev</depend>
@@ -25,6 +26,7 @@
   <depend>segmentation_msgs</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
+  <depend>yaml-cpp</depend>
 
   <test_depend>ament_cmake_gmock</test_depend>
   <test_depend>ament_lint_auto</test_depend>

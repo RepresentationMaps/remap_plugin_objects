@@ -1,0 +1,160 @@
+person:
+  ontology_class: "foaf:Person"
+bicycle:
+  ontology_class: "Bycicle"
+car:
+  ontology_class: "Car"
+motorbike:
+  ontology_class: "Motorbike"
+aeroplane;:
+  ontology_class: "Aeroplane"
+bus:
+  ontology_class: "Bus"
+train:
+  ontology_class: "Train"
+truck:
+  ontology_class: "Truck"
+boat:
+  ontology_class: "Boat"
+traffic_light:
+  ontology_class: "TrafficLight"
+fire_hydrant:
+  ontology_class: "FireHydrant"
+stop_sign:
+  ontology_class: "StopSign"
+parking_meter:
+  ontology_class: "ParkingMeter"
+bench:
+  ontology_class: "Bench"
+bird:
+  ontology_class: "Bird"
+cat:
+  ontology_class: "Cat"
+dog:
+  ontology_class: "Dog"
+horse:
+  ontology_class: "Horse"
+sheep:
+  ontology_class: "Sheep"
+cow:
+  ontology_class: "Cow"
+elephant:
+  ontology_class: "Elephant"
+bear:
+  ontology_class: "Bear"
+zebra:
+  ontology_class: "Zebra"
+giraffe:
+  ontology_class: "Giraffe"
+backpack:
+  ontology_class: "Backpack"
+umbrella:
+  ontology_class: "Umbrella"
+handbag:
+  ontology_class: "Handbag"
+tie:
+  ontology_class: "Tie"
+suitcase:
+  ontology_class: "Suitcase"
+frisbee:
+  ontology_class: "Frisbee"
+skis:
+  ontology_class: "Skis"
+snowboard:
+  ontology_class: "Snowboard"
+sports_ball:
+  ontology_class: "dbp:Ball"
+kite:
+  ontology_class: "Kite"
+baseball_bat:
+  ontology_class: "BaseballBat"
+baseball_glove:
+  ontology_class: "BaseballGlove"
+skateboard:
+  ontology_class: "Skateboard"
+surfboard:
+  ontology_class: "Surfboard"
+tennis racket:
+  ontology_class: "TennisRacket"
+bottle:
+  ontology_class: "dbp:Bottle"
+wine_glass:
+  ontology_class: "dbp:Glass_(drinkware)"
+cup:
+  ontology_class: "dbp:Cup"
+fork:
+  ontology_class: "dbp:Fork"
+knife:
+  onotology_class: "dbp:Knife"
+spoon:
+  ontology_class: "dbp:Spoon"
+bowl:
+  ontology_class: "dbp:Bowl"
+banana:
+  ontology_class: "dbp:Banana"
+apple:
+  ontology_class: "dbp:Apple"
+sandwich:
+  ontology_class: "Sandwich"
+orange:
+  ontology_class: "dbp:Orange_(fruit)"
+broccoli:
+  ontology_class: "Broccoli"
+carrot:
+  ontology_class: "Carrot"
+hot dog:
+  ontology_class: "HotDog"
+pizza:
+  ontology_class: "Pizza"
+donut:
+  ontology_class: "Donut"
+cake:
+  ontology_class: "Cake"
+chair:
+  ontology_class: "dbp:Chair"
+couch:
+  ontology_class: "dbp:Couch"
+potted_plant:
+  ontology_class: "dbp:Ornamental_plant"
+bed:
+  ontology_class: "dbp:Bed"
+diningtable:
+  ontology_class: "dbp:Table_(furniture)"
+toilet:
+  ontology_class: "Toilet"
+tv:
+  ontology_class: "dbp:Television"
+laptop:
+  ontology_class: "dbp:Laptop"
+mouse:
+  ontology_class: "dbp:Computer_mouse"
+remote:
+  ontology_class: "dbp:Remote_control"
+keyboard:
+  ontology_class: "dbp:Computer_keyboard"
+cell_phone:
+  ontology_class: "dbp:Smartphone"
+microwave:
+  ontology_class: "Microwave"
+oven:
+  ontology_class: "Oven"
+toaster:
+  ontology_class: "Toaster"
+sink:
+  ontology_class: "Sink"
+refrigerator:
+  ontology_class: "dbp:Refrigerator"
+book:
+  ontology_class: "dbp:Book"
+clock:
+  ontology_class: "dbp:Clock"
+vase:
+  ontology_class: "dbp:Vase"
+scissors:
+  ontology_class: "Scissors"
+teddy bear:
+  ontology_class: "Teddy_bear"
+hair_drier:
+  ontology_class: "HairDryer"
+toothbrush:
+  ontology_class: "Toothbrush"

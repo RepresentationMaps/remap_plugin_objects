@@ -14,6 +14,7 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH "${FIND_OPENVDB_PATH}")
 
+find_package(yaml-cpp REQUIRED)
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
@@ -25,6 +26,7 @@ src/remap_entity/entity.cpp)
 target_link_libraries(${PROJECT_NAME}
   ${PCL_LIBRARIES}
   ${OpenCV_LIBRARIES}
+  yaml-cpp
 )
 
 pluginlib_export_plugin_description_file(remap_plugin_base plugins.xml)
@@ -35,6 +37,7 @@ $<INSTALL_INTERFACE:include>)
 
 ament_target_dependencies(
   remap_plugin_objects
+  ament_index_cpp
   cv_bridge
   geometry_msgs
   pcl_conversions
@@ -74,10 +77,39 @@ install(
   DESTINATION include
 )
 
+install(
+  DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}
+)
+
 # Testing
 if(BUILD_TESTING)
   ament_auto_find_test_dependencies()
   ament_lint_auto_find_test_dependencies()
 endif()
+
+set(TARGET_DIRECTORY ${PROJECT_SOURCE_DIR}/config)
+
+file(GLOB FOLDERS ${TARGET_DIRECTORY}/*)
+
+foreach(FOLDER_PATH ${FOLDERS})
+    if(IS_DIRECTORY ${FOLDER_PATH})
+        get_filename_component(FOLDER_NAME ${FOLDER_PATH} NAME)
+
+        file(GLOB FILES "${FOLDER_PATH}/*")
+
+        file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.${FOLDER_NAME} "")
+
+        foreach(FILE_PATH ${FILES})
+            get_filename_component(FILE_NAME ${FILE_PATH} NAME)
+            file(SIZE ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.${FOLDER_NAME} FILE_SIZE)
+            if(FILE_SIZE GREATER 0)
+              file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.${FOLDER_NAME} ";")
+            endif()  
+            file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.${FOLDER_NAME} "config/${FOLDER_NAME}/${FILE_NAME}")
+            install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.${FOLDER_NAME} DESTINATION share/ament_index/resource_index/remap.${FOLDER_NAME}/ RENAME ${PROJECT_NAME})
+        endforeach()
+    endif()
+endforeach()
 
 ament_auto_package()

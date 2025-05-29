@@ -83,6 +83,11 @@ public:
 		return points_;
 	}
 
+	inline void setEntityId(const std::string & entity_id)
+	{
+		entity_id_ = entity_id;
+	}
+
 	inline std::string getEntityId() const
 	{
 		return entity_id_;
@@ -91,6 +96,11 @@ public:
 	inline std::string getEntityType() const
 	{
 		return entity_type_;
+	}
+
+	inline openvdb::CoordBBox getBBox() const
+	{
+		return object_bbox_;
 	}
 
 	inline std::vector<std::string> getFacts() const

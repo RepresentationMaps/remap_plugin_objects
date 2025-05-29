@@ -113,6 +113,18 @@ openvdb::CoordBBox PluginObjects::computeCoordBBox(const std::vector<pcl::PointX
   return openvdb::CoordBBox(minCoord, maxCoord);
 }
 
+bool PluginObjects::checkPointInBBox(
+  const openvdb::CoordBBox & bbox,
+  const pcl::PointXYZ & point) const {
+  auto index_point = grid_transform_->worldToIndex(
+    openvdb::Vec3d(point.x, point.y, point.z));
+  openvdb::Coord coord = openvdb::Coord(
+      static_cast<int>(index_point[0]),
+      static_cast<int>(index_point[1]),
+      static_cast<int>(index_point[2]));
+  return bbox.isInside(coord);
+}
+
 void PluginObjects::depthSegmentationCallback(
   const sensor_msgs::msg::Image::SharedPtr depth_image,
   const segmentation_msgs::msg::SegmentationArray::SharedPtr segmentation_array)
@@ -200,14 +212,7 @@ void PluginObjects::depthSegmentationCallback(
 
     const auto centroid_distance = computeCentroidDistance(filtered_points, detection.id);
     if (centroid_distance > distance_threshold_) {
-      RCLCPP_WARN(
-        node_ptr_->get_logger(),
-        "Object %s centroid distance is too far: %f", detection.id.c_str(), centroid_distance);
       continue;
-    } else {
-      RCLCPP_INFO(
-        node_ptr_->get_logger(),
-        "Object %s centroid distance is: %f", detection.id.c_str(), centroid_distance);
     }
 
     transformPointCloud(filtered_points, rotated_points, transform_stamped);
@@ -235,10 +240,12 @@ void PluginObjects::depthSegmentationCallback(
       // Since we know there's not another object with the same ID
       // we proceed checking if there's a similar object
       auto bbox = computeCoordBBox(rotated_points);
-      entity::Entity new_detection = entity::Entity(
+      entity::Object new_detection = entity::Object(
         object_id,
         detection.results[0].hypothesis.class_id,
-        node_ptr_->get_clock()->now().seconds());
+        node_ptr_->get_clock()->now().seconds(),
+        rotated_points);
+      new_detection.setBBox(bbox);
 
       bool new_object = true;
 
@@ -248,24 +255,38 @@ void PluginObjects::depthSegmentationCallback(
         if (stored_entity.second.getEntityType() ==
             detection.results[0].hypothesis.class_id)
         {
-          // if (stored_entity.second.computeIoU(bbox) > 0.2) {
-          if (stored_entity.second.computIntersectionRatio(bbox) > 0.2) {
-            // Then this is a new object
-            // We store the object among the stored entities
-            // entities_objects_[object_id] = new_detection;
-            RCLCPP_WARN(
+          auto intersection_ratio = stored_entity.second.computIntersectionRatio(bbox); 
+          RCLCPP_INFO(
+            node_ptr_->get_logger(), "Object %s vs %s, intersection ratio: %f",
+            object_id.c_str(), stored_entity.second.getEntityId().c_str(),
+            intersection_ratio);
+          if (intersection_ratio > 0.2) {
+            // The object has been previously detected
+            // Now we have to decide whether adding or not the new points
+            // We proceed adding the newly detected points that are
+            // not inside the bounding box of the already-stored object
+            RCLCPP_INFO(
               node_ptr_->get_logger(),
-              "Object %s overlapping, skipping insertion", object_id.c_str());
+              "Object %s overlaps with %s, adding points",
+              object_id.c_str(), stored_entity.second.getEntityId().c_str());
+
+
+            // First, we get the object bounding box
+            auto stored_bbox = stored_entity.second.getBBox();
+
+            std::vector<pcl::PointXYZ> new_points;
+            for (const auto & point : rotated_points) {
+              if (!checkPointInBBox(stored_bbox, point)) {
+                new_points.push_back(point);
+              }
+            }
+            stored_entity.second.addPoints(new_points);
+            stored_entity.second.expandBBox(bbox);
             new_object = false;
             break;
           }
         }
       }
-
-      /*
-      if (entities_objects_.size() == 0) {
-        new_object = true;
-      }*/
 
       if (!new_object) {
         RCLCPP_WARN(
@@ -284,6 +305,7 @@ void PluginObjects::depthSegmentationCallback(
         object_id, detection.results[0].hypothesis.class_id,
         node_ptr_->get_clock()->now().seconds());
       */
+      /*
       entities_objects_[object_id].updateRemove_f(
         std::bind(
           &remap::map_handler::SemanticMapHandler::removeRegion,
@@ -293,15 +315,18 @@ void PluginObjects::depthSegmentationCallback(
           &remap::map_handler::SemanticMapHandler::insertSemanticPoints,
           std::ref(*semantic_map_), rotated_points, std::placeholders::_1,
           std::ref(*regions_register_)));
+      */
       new_facts.push_back(detection.id + " rdf:type " + detection.results[0].hypothesis.class_id);
     } else {
       // We update the time of the entity
+      /*
       entities_objects_it->second.update_f(
         std::bind(
           &remap::map_handler::SemanticMapHandler::insertSemanticPoints,
           std::ref(*semantic_map_), rotated_points, std::placeholders::_1,
           std::ref(*regions_register_)));
       entities_objects_it->second.updateTime(node_ptr_->get_clock()->now().seconds());
+      */
     }
   }
   if (new_facts.size() > 0) {
@@ -316,19 +341,12 @@ void PluginObjects::run()
   for (auto & entity : entities_objects_) {
     // TEST: TO_DO: avoid removing all the times. Switching to persistence,
     // we should avoid removing all the times.
-    entity.second.remove();
-    if (!entity.second.checkTime(node_ptr_->get_clock()->now().seconds())) {
-      // entities_to_remove.push_back(entity.first + "rdf:type " + entity.second.getEntityType());
-
-      // TEST: disabled as we're now testing persistence
-
-      // entities_to_remove.push_back(entity.first);
-
-      // TEST: avoid changing code structure
-      entity.second.map();
-    } else {
-      entity.second.map();
-    }
+    // entity.second.remove();
+    semantic_map_->removeRegion(entity.second.getEntityId(), *regions_register_);
+    semantic_map_->insertSemanticPoints(
+      entity.second.getPoints(),
+      entity.second.getEntityId(),
+      *regions_register_);
   }
 
   std::vector<std::string> old_facts;
@@ -423,11 +441,6 @@ float PluginObjects::computeCentroidDistance(
   const std::vector<pcl::PointXYZ>& points,
   const std::string & object_id) {
   if (points.empty()) {
-    if (object_id.size() > 0) {
-      RCLCPP_WARN(
-        node_ptr_->get_logger(),
-        "No points found for object %s. Returning default point.", object_id.c_str());
-    }
     return distance_threshold_ + 0.5f;
   }
 

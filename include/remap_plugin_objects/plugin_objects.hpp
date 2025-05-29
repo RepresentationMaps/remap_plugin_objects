@@ -38,7 +38,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include <remap_entity/entity.hpp>
+#include <remap_entity/object.hpp>
 #include <remap_plugin_base/plugin_base.hpp>
 #include <remap_plugin_base/semantic_plugin.hpp>
 #include <remap_regions_register/regions_register.hpp>
@@ -75,6 +75,9 @@ private:
     const geometry_msgs::msg::TransformStamped & transform_stamped);
 
   openvdb::CoordBBox computeCoordBBox(const std::vector<pcl::PointXYZ>& points) const;
+  bool checkPointInBBox(
+    const openvdb::CoordBBox & bbox,
+    const pcl::PointXYZ & point) const;
 
   std::vector<std::string> regions_;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
@@ -95,7 +98,8 @@ private:
   std::vector<std::string> relationships_;
   std::vector<std::string> old_relationships_;
 
-  std::map<std::string, remap::entity::Entity> entities_objects_;
+  // std::map<std::string, remap::entity::Entity> entities_objects_;
+  std::map<std::string, remap::entity::Object> entities_objects_;
 
   openvdb::math::Transform::ConstPtr grid_transform_;
 

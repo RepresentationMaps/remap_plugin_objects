@@ -286,13 +286,7 @@ void PluginObjects::depthSegmentationCallback(
       new_facts.push_back(detection.results[0].hypothesis.class_id + " rdf:type " + ontology_class);
 
       // isIn computation. Demo only. Needs refinement.
-      std::vector<std::string> rooms = {"kitchen", "living_room", "corridor"};
-      auto presence_entities = regions_register_->getCoexistentEntities(object_id);
-      for (const auto & room : rooms) {
-        if (presence_entities.find(room) != presence_entities.end()) {
-          new_facts.push_back(detection.results[0].hypothesis.class_id + " oro:isIn " + room);
-        }
-      }
+      // This part has to be performed later, when inserting the object
     } else {
       // We update the time of the entity
       entities_objects_it->second.update_f(
@@ -312,6 +306,8 @@ void PluginObjects::run()
 {
   std::lock_guard<std::mutex> lock(objects_mutex_);
   std::vector<std::string> entities_to_remove;
+  std::vector<std::string> new_facts;
+
   for (auto & entity : entities_objects_) {
     entity.second.remove();
     if (!entity.second.checkTime(node_ptr_->get_clock()->now().seconds())) {
@@ -319,6 +315,15 @@ void PluginObjects::run()
       entities_to_remove.push_back(entity.first);
     } else {
       entity.second.map();
+
+      auto object_id = entity.first;
+      std::vector<std::string> rooms = {"kitchen", "living_room", "corridor", "working_area"};
+      auto presence_entities = regions_register_->getCoexistentEntities(object_id);
+      for (const auto & room : rooms) {
+        if (presence_entities.find(room) != presence_entities.end()) {
+          new_facts.push_back(object_id + " isIn " + room);
+        }
+      }
     }
   }
 
@@ -330,6 +335,10 @@ void PluginObjects::run()
 
   if (old_facts.size() > 0) {
     //this->reviseRemoveFacts(old_facts);   // removed for demo purposes
+  }
+
+  if (new_facts.size() > 0) {
+    this->revisePushFacts(new_facts);
   }
 }
 

@@ -63,7 +63,7 @@ skis:
 snowboard:
   ontology_class: "Snowboard"
 sports_ball:
-  ontology_class: "dbp:Ball"
+  ontology_class: "dbr:Ball"
 kite:
   ontology_class: "Kite"
 baseball_bat:
@@ -77,27 +77,27 @@ surfboard:
 tennis racket:
   ontology_class: "TennisRacket"
 bottle:
-  ontology_class: "dbp:Bottle"
+  ontology_class: "dbr:Bottle"
 wine_glass:
-  ontology_class: "dbp:Glass_(drinkware)"
+  ontology_class: "dbr:Glass_(drinkware)"
 cup:
-  ontology_class: "dbp:Cup"
+  ontology_class: "dbr:Cup"
 fork:
-  ontology_class: "dbp:Fork"
+  ontology_class: "dbr:Fork"
 knife:
-  onotology_class: "dbp:Knife"
+  onotology_class: "dbr:Knife"
 spoon:
-  ontology_class: "dbp:Spoon"
+  ontology_class: "dbr:Spoon"
 bowl:
-  ontology_class: "dbp:Bowl"
+  ontology_class: "dbr:Bowl"
 banana:
-  ontology_class: "dbp:Banana"
+  ontology_class: "dbr:Banana"
 apple:
-  ontology_class: "dbp:Apple"
+  ontology_class: "dbr:Apple"
 sandwich:
   ontology_class: "Sandwich"
 orange:
-  ontology_class: "dbp:Orange_(fruit)"
+  ontology_class: "dbr:Orange_(fruit)"
 broccoli:
   ontology_class: "Broccoli"
 carrot:
@@ -111,29 +111,29 @@ donut:
 cake:
   ontology_class: "Cake"
 chair:
-  ontology_class: "dbp:Chair"
+  ontology_class: "dbr:Chair"
 couch:
-  ontology_class: "dbp:Couch"
+  ontology_class: "dbr:Couch"
 potted_plant:
-  ontology_class: "dbp:Ornamental_plant"
+  ontology_class: "dbr:Ornamental_plant"
 bed:
-  ontology_class: "dbp:Bed"
+  ontology_class: "dbr:Bed"
 diningtable:
-  ontology_class: "dbp:Table_(furniture)"
+  ontology_class: "dbr:Table_(furniture)"
 toilet:
   ontology_class: "Toilet"
 tv:
-  ontology_class: "dbp:Television"
+  ontology_class: "dbr:Television"
 laptop:
-  ontology_class: "dbp:Laptop"
+  ontology_class: "dbr:Laptop"
 mouse:
-  ontology_class: "dbp:Computer_mouse"
+  ontology_class: "dbr:Computer_mouse"
 remote:
-  ontology_class: "dbp:Remote_control"
+  ontology_class: "dbr:Remote_control"
 keyboard:
-  ontology_class: "dbp:Computer_keyboard"
+  ontology_class: "dbr:Computer_keyboard"
 cell_phone:
-  ontology_class: "dbp:Smartphone"
+  ontology_class: "dbr:Smartphone"
 microwave:
   ontology_class: "Microwave"
 oven:
@@ -143,13 +143,13 @@ toaster:
 sink:
   ontology_class: "Sink"
 refrigerator:
-  ontology_class: "dbp:Refrigerator"
+  ontology_class: "dbr:Refrigerator"
 book:
-  ontology_class: "dbp:Book"
+  ontology_class: "dbr:Book"
 clock:
-  ontology_class: "dbp:Clock"
+  ontology_class: "dbr:Clock"
 vase:
-  ontology_class: "dbp:Vase"
+  ontology_class: "dbr:Vase"
 scissors:
   ontology_class: "Scissors"
 teddy bear:

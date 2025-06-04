@@ -398,7 +398,7 @@ void PluginObjects::storeEntitiesRelationships(
         relationships_.begin(), relationships_.end(),
         old_relationship) == relationships_.end())
     {
-      this->removeFact(old_relationship);
+      // this->removeFact(old_relationship);  // removed for demo purposes
     }
   }
 

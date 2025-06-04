@@ -265,6 +265,7 @@ void PluginObjects::depthSegmentationCallback(
       entities_objects_[object_id] = remap::entity::Entity(
         object_id, detection.results[0].hypothesis.class_id,
         node_ptr_->get_clock()->now().seconds());
+      entities_objects_[object_id].setAnonEntityId(detection.results[0].hypothesis.class_id);
       entities_objects_[object_id].updateRemove_f(
         std::bind(
           &remap::map_handler::SemanticMapHandler::removeRegion,
@@ -318,10 +319,15 @@ void PluginObjects::run()
 
       auto object_id = entity.first;
       std::vector<std::string> rooms = {"kitchen", "living_room", "corridor", "working_area"};
-      auto presence_entities = regions_register_->getCoexistentEntities(object_id);
+      auto presence_entities = regions_register_->getCoexistentEntities(entity.second.getAnonEntityId());
+      std::cout << "Found coexistence for object " << object_id << ": ";
+      for (const auto & coex : presence_entities) {
+        std::cout << coex << " ";
+      }
+      std::cout << std::endl;
       for (const auto & room : rooms) {
         if (presence_entities.find(room) != presence_entities.end()) {
-          new_facts.push_back(object_id + " isIn " + room);
+          new_facts.push_back(entity.second.getAnonEntityId() + " isIn " + room);
         }
       }
     }

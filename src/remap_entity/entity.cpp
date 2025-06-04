@@ -46,7 +46,7 @@ void Entity::updateRemove_f(const std::function<void(const std::string &)> & f)
 void Entity::map(const bool & update_time)
 {
   if (f_) {
-    f_(entity_id_);
+    f_(anon_entity_id_);
   }
   if (update_time) {
     last_updated_ = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -57,7 +57,7 @@ void Entity::map(const bool & update_time)
 void Entity::remove()
 {
   if (remove_f_) {
-    remove_f_(entity_id_);
+    remove_f_(anon_entity_id_);
   }
 }
 

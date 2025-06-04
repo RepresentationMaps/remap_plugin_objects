@@ -27,6 +27,7 @@ class Entity
 {
 protected:
   std::string entity_id_;
+  std::string anon_entity_id_;
   std::string entity_type_;
   std::function<void(const std::string &)> f_;
   std::function<void(const std::string &)> remove_f_;
@@ -60,10 +61,21 @@ public:
 
   void storeFact(const std::string & fact);
 
+  // Setters
+  void setAnonEntityId(const std::string & anon_entity_id)
+  {
+    anon_entity_id_ = anon_entity_id;
+  }
+
   // Getters
   std::string getEntityId() const
   {
     return entity_id_;
+  }
+
+  std::string getAnonEntityId() const
+  {
+    return anon_entity_id_;
   }
 
   std::string getEntityType() const

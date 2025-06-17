@@ -337,6 +337,9 @@ void PluginObjects::run()
   for (const auto & entity : entities_to_remove) {
     old_facts.push_back(entity + " rdf:type " + entities_objects_[entity].getEntityType());
     entities_objects_.erase(entity);
+    RCLCPP_WARN( 
+      node_ptr_->get_logger(),
+      "Object %s removed from the plugin objects", entity.c_str());
   }
 
   if (old_facts.size() > 0) {

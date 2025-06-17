@@ -57,7 +57,7 @@ public:
 
   bool checkTime(
     const double & current_time,
-    const double & time_threshold = 1.0);
+    const double & time_threshold = 3.0);
 
   void storeFact(const std::string & fact);
 

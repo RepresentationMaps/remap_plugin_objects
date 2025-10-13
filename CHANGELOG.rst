@@ -2,6 +2,11 @@
 Changelog for package remap_plugin_objects
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix ament_auto warning about headers install destination
+* Contributors: Noel Jimenez
+
 0.2.0 (2025-04-07)
 ------------------
 * moved remap_entity to this package

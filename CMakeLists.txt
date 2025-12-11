@@ -38,7 +38,6 @@ ament_target_dependencies(
   cv_bridge
   geometry_msgs
   pcl_conversions
-  pcl_ros
   pluginlib
   rclcpp
   remap_map_handler

@@ -2,8 +2,8 @@
 Changelog for package remap_plugin_objects
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.2 (2026-02-18)
+------------------
 * jazzy compat
   cv_bridge.h -> cv_bridge.hpp on jazzy
 * removed pcl_ros dependency

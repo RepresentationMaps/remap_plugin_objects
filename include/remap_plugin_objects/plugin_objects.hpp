@@ -19,7 +19,12 @@
 #include <message_filters/sync_policies/approximate_time.h>
 #include <message_filters/synchronizer.h>
 
-#include <cv_bridge/cv_bridge.h>
+// jazzy exposes a cv_bridge.hpp, but humble only has cv_bridge.h
+#if __has_include("cv_bridge/cv_bridge.hpp")
+#include "cv_bridge/cv_bridge.hpp"
+#else
+#include "cv_bridge/cv_bridge.h"
+#endif
 
 #include <pcl/common/transforms.h>
 #include <pcl/point_types.h>

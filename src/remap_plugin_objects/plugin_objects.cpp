@@ -14,6 +14,8 @@
 
 #include <cmath>
 
+#include <rclcpp/version.h>
+
 #include "remap_plugin_objects/plugin_objects.hpp"
 
 namespace remap
@@ -45,14 +47,20 @@ void PluginObjects::initialize()
     "/depth_registered/camera_info",
     rclcpp::SensorDataQoS(),
     std::bind(&PluginObjects::cameraInfoCallback, this, std::placeholders::_1));
+  // message_filters takes an rclcpp::QoS since Kilted, an rmw_qos_profile_t before
+#if RCLCPP_VERSION_MAJOR >= 29
+  const auto sensor_qos = rclcpp::SensorDataQoS();
+#else
+  const auto sensor_qos = rmw_qos_profile_sensor_data;
+#endif
   depth_image_sub_.subscribe(
     node_ptr_,
     "/depth_registered/image_rect",
-    rmw_qos_profile_sensor_data);
+    sensor_qos);
   segmentation_sub_.subscribe(
     node_ptr_,
     "/world/objects/detections",
-    rmw_qos_profile_sensor_data);
+    sensor_qos);
   depth_seg_sync_ = std::make_shared<message_filters::Synchronizer<SyncPolicy>>(
     SyncPolicy(10),
     depth_image_sub_,

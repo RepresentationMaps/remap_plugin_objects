@@ -15,25 +15,20 @@
 #ifndef REMAP_PLUGIN_OBJECTS__PLUGIN_OBJECTS_HPP_
 #define REMAP_PLUGIN_OBJECTS__PLUGIN_OBJECTS_HPP_
 
-#include <message_filters/subscriber.h>
-#include <message_filters/sync_policies/approximate_time.h>
-#include <message_filters/synchronizer.h>
+#include <message_filters/subscriber.hpp>
+#include <message_filters/sync_policies/approximate_time.hpp>
+#include <message_filters/synchronizer.hpp>
 
-// jazzy exposes a cv_bridge.hpp, but humble only has cv_bridge.h
-#if __has_include("cv_bridge/cv_bridge.hpp")
-#include "cv_bridge/cv_bridge.hpp"
-#else
-#include "cv_bridge/cv_bridge.h"
-#endif
+#include <cv_bridge/cv_bridge.hpp>
 
 #include <pcl/common/transforms.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 
-#include <tf2/LinearMath/Transform.h>
-#include <tf2/convert.h>
-#include <tf2_ros/buffer.h>
-#include <tf2_ros/transform_listener.h>
+#include <tf2/LinearMath/Transform.hpp>
+#include <tf2/convert.hpp>
+#include <tf2_ros/buffer.hpp>
+#include <tf2_ros/transform_listener.hpp>
 
 #include <map>
 #include <memory>

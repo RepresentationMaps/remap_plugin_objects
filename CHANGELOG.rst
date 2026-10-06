@@ -2,8 +2,8 @@
 Changelog for package remap_plugin_objects
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.3 (2026-10-06)
+------------------
 * compat lyrical and cleanup CMakeLists
   - use ament_auto, drop ament_target_dependencies
   - explicitly find and link OpenCV and PCL

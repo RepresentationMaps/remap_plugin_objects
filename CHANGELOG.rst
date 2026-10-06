@@ -2,6 +2,17 @@
 Changelog for package remap_plugin_objects
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* compat lyrical and cleanup CMakeLists
+  - use ament_auto, drop ament_target_dependencies
+  - explicitly find and link OpenCV and PCL
+  - declare remap_regions_register, sensor_msgs, tf2_geometry_msgs deps
+  - use .hpp headers for tf2/message_filters/cv_bridge (drops humble)
+  - pass rclcpp::QoS to message_filters subscribe on Kilted+
+  Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
+* Contributors: Séverin Lemaignan
+
 0.2.2 (2026-02-18)
 ------------------
 * jazzy compat
